@@ -1,0 +1,1185 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>The Backrooms - Level 0 (Wallpaper 01 4K PBR + POM)</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      overscroll-behavior: none;
+      background: #1a1407;
+      font-family: 'Courier New', Courier, monospace;
+    }
+    #game-canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      touch-action: none;
+    }
+    #vhs-overlay {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 8;
+      background:
+        radial-gradient(circle at center, transparent 52%, rgba(8, 6, 2, 0.52) 100%),
+        repeating-linear-gradient(
+          0deg,
+          rgba(255, 248, 210, 0.012) 0px,
+          rgba(255, 248, 210, 0.012) 1px,
+          transparent 1px,
+          transparent 3px
+        );
+    }
+    #hud {
+      position: fixed;
+      top: 14px;
+      left: 14px;
+      color: #e6dcb4;
+      background: rgba(14, 11, 5, 0.82);
+      border: 1px solid rgba(230, 220, 180, 0.22);
+      padding: 10px 14px;
+      font-size: 12px;
+      line-height: 1.5;
+      z-index: 25;
+      width: 274px;
+    }
+    #hud b {
+      color: #fff5c4;
+    }
+    #tex-status {
+      font-size: 11px;
+      color: #b8f2b0;
+      word-break: break-all;
+      margin-top: 4px;
+    }
+    .control-group {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(230, 220, 180, 0.2);
+      pointer-events: auto;
+    }
+    .control-label {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+      color: #fff5c4;
+    }
+    input[type="range"] {
+      width: 100%;
+      accent-color: #ebd688;
+      cursor: pointer;
+      touch-action: pan-x;
+      margin: 0;
+    }
+    .btn-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 6px;
+    }
+    button.hud-btn {
+      flex: 1;
+      background: rgba(255, 245, 196, 0.12);
+      color: #fff5c4;
+      border: 1px solid rgba(255, 245, 196, 0.35);
+      padding: 5px 6px;
+      font-family: inherit;
+      font-size: 11px;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+    button.hud-btn:active {
+      background: rgba(255, 245, 196, 0.28);
+    }
+    #joystick-zone {
+      position: fixed;
+      bottom: 28px;
+      left: 28px;
+      width: 132px;
+      height: 132px;
+      border-radius: 50%;
+      background: rgba(255, 244, 194, 0.08);
+      border: 2px solid rgba(255, 244, 194, 0.28);
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: none;
+    }
+    #joystick-knob {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, rgba(255, 247, 210, 0.75), rgba(180, 165, 110, 0.45));
+      border: 1px solid rgba(255, 250, 225, 0.65);
+      transform: translate(0px, 0px);
+      pointer-events: none;
+    }
+    #look-zone {
+      position: fixed;
+      inset: 0;
+      z-index: 5;
+      touch-action: none;
+    }
+    @media (max-width: 720px) {
+      #hud {
+        width: 235px;
+        font-size: 11px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="vhs-overlay"></div>
+
+  <div id="hud">
+    <b>BACKROOMS // LEVEL 0</b><br>
+    Move: WASD / Joystick &nbsp;|&nbsp; Sprint: Shift<br>
+    Look: Move Mouse (Click Lock / ESC)<br>
+    Coords: <span id="pos-readout">0.0m, 0.0m</span>
+    <div id="tex-status">Textures: loading...</div>
+
+    <div class="control-group">
+      <div class="control-label">
+        <span>Wall Tiles:</span>
+        <span id="tile-val">1.50x</span>
+      </div>
+      <input type="range" id="tile-slider" min="0.5" max="4.0" step="0.05" value="1.50" />
+
+      <div class="control-label" style="margin-top:6px;">
+        <span>Wall POM Depth:</span>
+        <span id="pom-val">0.022</span>
+      </div>
+      <input type="range" id="pom-slider" min="0.0" max="0.045" step="0.001" value="0.022" />
+
+      <div class="btn-row">
+        <button class="hud-btn" id="btn-flashlight">Flashlight: OFF</button>
+        <button class="hud-btn" id="btn-regen">Reset Map</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="joystick-zone">
+    <div id="joystick-knob"></div>
+  </div>
+  <div id="look-zone"></div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
+
+    RectAreaLightUniformsLib.init();
+
+    // ==========================================
+    // 1. SCENE, CAMERA & RENDERER
+    // ==========================================
+    const scene = new THREE.Scene();
+    const FOG_COLOR = 0x221b0b;
+    scene.background = new THREE.Color(FOG_COLOR);
+    scene.fog = new THREE.FogExp2(FOG_COLOR, 0.036);
+
+    const camera = new THREE.PerspectiveCamera(73, window.innerWidth / window.innerHeight, 0.1, 88);
+    camera.rotation.order = 'YXZ';
+
+    let yaw = 0;
+    let pitch = 0;
+    let targetYaw = 0;
+    let targetPitch = 0;
+
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      powerPreference: 'high-performance'
+    });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.06;
+    renderer.domElement.id = 'game-canvas';
+    document.body.appendChild(renderer.domElement);
+
+    // ==========================================
+    // 2. LOW-LATENCY STEP-SYNCED FOOTSTEP AUDIO (walk.mp3)
+    // ==========================================
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+    let walkBuffer = null;
+
+    async function loadWalkBuffer() {
+      try {
+        const res = await fetch('walk.mp3');
+        const arrBuf = await res.arrayBuffer();
+        const tempCtx = new AudioCtx();
+        walkBuffer = await tempCtx.decodeAudioData(arrBuf);
+        tempCtx.close();
+      } catch (err) {
+        console.warn('Could not decode walk.mp3 via WebAudio, using Audio fallback:', err);
+      }
+    }
+    loadWalkBuffer();
+
+    const fallbackWalkAudio = new Audio('walk.mp3');
+    fallbackWalkAudio.preload = 'auto';
+
+    function unlockAudioContext() {
+      if (!audioCtx && AudioCtx) {
+        audioCtx = new AudioCtx();
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume().catch(() => {});
+      }
+    }
+    window.addEventListener('pointerdown', unlockAudioContext, { passive: true });
+    window.addEventListener('keydown', unlockAudioContext, { passive: true });
+
+    function playOneStep(sprinting) {
+      unlockAudioContext();
+      if (audioCtx && walkBuffer) {
+        const src = audioCtx.createBufferSource();
+        src.buffer = walkBuffer;
+        src.playbackRate.value = (sprinting ? 1.12 : 0.98) + (Math.random() * 0.05 - 0.025);
+
+        const gain = audioCtx.createGain();
+        gain.gain.value = sprinting ? 0.75 : 0.55;
+
+        src.connect(gain);
+        gain.connect(audioCtx.destination);
+        src.start(0);
+      } else {
+        const clone = fallbackWalkAudio.cloneNode();
+        clone.volume = sprinting ? 0.75 : 0.55;
+        clone.playbackRate = sprinting ? 1.12 : 0.98;
+        clone.play().catch(() => {});
+      }
+    }
+
+    // ==========================================
+    // 3. TEXTURE LOADER
+    // ==========================================
+    const CELL_SIZE = 4.4;
+    const WALL_HEIGHT = 3.5;
+    const ASPECT_RATIO = WALL_HEIGHT / CELL_SIZE;
+
+    let tileRepeatX = 1.50;
+    let tileRepeatY = tileRepeatX * ASPECT_RATIO;
+
+    const wallTextures = [];
+    const texStatusEl = document.getElementById('tex-status');
+    let loadedCount = 0;
+    let failedCount = 0;
+    let lastErrorPath = '';
+
+    function updateTexStatus() {
+      if (failedCount > 0) {
+        texStatusEl.style.color = '#ff9e80';
+        texStatusEl.textContent = `Tex: ${loadedCount} ok, ${failedCount} err (${lastErrorPath})`;
+      } else {
+        texStatusEl.style.color = '#b8f2b0';
+        texStatusEl.textContent = `Tex: ${loadedCount} loaded`;
+      }
+    }
+
+    const loader = new THREE.TextureLoader();
+
+    function loadTex(path, { isColor = false, repeatX = 1, repeatY = 1, trackWall = false } = {}) {
+      const tex = loader.load(
+        path,
+        () => {
+          loadedCount++;
+          updateTexStatus();
+        },
+        undefined,
+        () => {
+          failedCount++;
+          lastErrorPath = path;
+          console.error('Failed to load texture:', path);
+          updateTexStatus();
+        }
+      );
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(repeatX, repeatY);
+      tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+      tex.minFilter = THREE.LinearMipmapLinearFilter;
+      tex.magFilter = THREE.LinearFilter;
+      if (isColor) {
+        tex.colorSpace = THREE.SRGBColorSpace;
+      }
+      if (trackWall) {
+        wallTextures.push(tex);
+      }
+      return tex;
+    }
+
+    function injectPOM(material, heightMap, pomScaleUniform, texRepeatUniform, minLayers = 10.0, maxLayers = 28.0) {
+      material.onBeforeCompile = (shader) => {
+        shader.uniforms.uHeightMap = { value: heightMap };
+        shader.uniforms.uPomScale  = pomScaleUniform;
+        shader.uniforms.uTexRepeat = texRepeatUniform;
+
+        shader.vertexShader = shader.vertexShader
+          .replace(
+            '#include <common>',
+            `#include <common>
+             varying vec3 vWorldPos;
+             varying vec2 vRawUv;`
+          )
+          .replace(
+            '#include <begin_vertex>',
+            `#include <begin_vertex>
+             vRawUv = uv;
+             vWorldPos = (modelMatrix * vec4(transformed, 1.0)).xyz;`
+          );
+
+        shader.fragmentShader = shader.fragmentShader
+          .replace(
+            '#include <common>',
+            `#include <common>
+             uniform sampler2D uHeightMap;
+             uniform float uPomScale;
+             uniform vec2 uTexRepeat;
+             varying vec3 vWorldPos;
+             varying vec2 vRawUv;
+
+             vec2 parallaxOcclusionMapping(vec2 uv, vec3 viewDirTS) {
+               if (uPomScale <= 0.0001) return uv;
+               const float minL = ${minLayers.toFixed(1)};
+               const float maxL = ${maxLayers.toFixed(1)};
+               float numLayers = mix(maxL, minL, abs(dot(vec3(0.0, 0.0, 1.0), viewDirTS)));
+               float layerDepth = 1.0 / numLayers;
+               float currentLayerDepth = 0.0;
+
+               vec2 P = (viewDirTS.xy / max(viewDirTS.z, 0.35)) * uPomScale;
+               vec2 deltaTexCoords = P / numLayers;
+
+               vec2 currentTexCoords = uv;
+               float currentDepthMapValue = 1.0 - texture2D(uHeightMap, currentTexCoords).r;
+
+               for (int i = 0; i < 28; i++) {
+                 if (currentLayerDepth >= currentDepthMapValue) break;
+                 currentTexCoords -= deltaTexCoords;
+                 currentDepthMapValue = 1.0 - texture2D(uHeightMap, currentTexCoords).r;
+                 currentLayerDepth += layerDepth;
+               }
+
+               vec2 prevTexCoords = currentTexCoords + deltaTexCoords;
+               float afterDepth  = currentDepthMapValue - currentLayerDepth;
+               float beforeDepth = (1.0 - texture2D(uHeightMap, prevTexCoords).r) - currentLayerDepth + layerDepth;
+               float weight = afterDepth / (afterDepth - beforeDepth + 0.0001);
+
+               return prevTexCoords * weight + currentTexCoords * (1.0 - weight);
+             }`
+          )
+          .replace(
+            '#include <uv_fragment>',
+            `#include <uv_fragment>
+             vec2 tiledUv = vRawUv * uTexRepeat;
+             vec3 q0 = dFdx(vWorldPos);
+             vec3 q1 = dFdy(vWorldPos);
+             vec2 st0 = dFdx(tiledUv);
+             vec2 st1 = dFdy(tiledUv);
+
+             vec3 N = normalize(cross(q0, q1));
+             vec3 T = normalize(q0 * st1.t - q1 * st0.t);
+             vec3 B = normalize(cross(N, T));
+             mat3 TBN = transpose(mat3(T, B, N));
+
+             vec3 viewDirWS = normalize(cameraPosition - vWorldPos);
+             vec3 viewDirTS = normalize(TBN * viewDirWS);
+
+             vec2 pomUv = parallaxOcclusionMapping(tiledUv, viewDirTS);
+            `
+          )
+          .replace(/vMapUv/g, 'pomUv')
+          .replace(/vNormalMapUv/g, 'pomUv')
+          .replace(/vRoughnessMapUv/g, 'pomUv')
+          .replace(/vMetalnessMapUv/g, 'pomUv')
+          .replace(/vAoMapUv/g, 'pomUv');
+      };
+    }
+
+    // ==========================================
+    // 4. WALL PBR + POM (backroom/Walls/Backrooms_Wallpaper_01_*)
+    // ==========================================
+    const wallColor = loadTex('backroom/Walls/Backrooms_Wallpaper_01_Color.jpg', {
+      isColor: true,
+      repeatX: tileRepeatX,
+      repeatY: tileRepeatY,
+      trackWall: true
+    });
+    const wallNormal = loadTex('backroom/Walls/Backrooms_Wallpaper_01_Normal.jpg', {
+      repeatX: tileRepeatX,
+      repeatY: tileRepeatY,
+      trackWall: true
+    });
+    const wallRoughness = loadTex('backroom/Walls/Backrooms_Wallpaper_01_Roughness.jpg', {
+      repeatX: tileRepeatX,
+      repeatY: tileRepeatY,
+      trackWall: true
+    });
+    const wallTintable = loadTex('backroom/Walls/Backrooms_Wallpaper_01_Tintable.jpg', {
+      isColor: true,
+      repeatX: tileRepeatX,
+      repeatY: tileRepeatY,
+      trackWall: true
+    });
+
+    const wallPomUniforms = {
+      uHeightMap: { value: wallRoughness },
+      uPomScale:  { value: 0.022 },
+      uTexRepeat: { value: new THREE.Vector2(tileRepeatX, tileRepeatY) }
+    };
+
+    const wallMaterial = new THREE.MeshStandardMaterial({
+      map: wallColor,
+      normalMap: wallNormal,
+      normalScale: new THREE.Vector2(1.45, 1.45),
+      roughnessMap: wallRoughness,
+      aoMap: wallTintable,
+      aoMapIntensity: 0.42,
+      roughness: 0.86,
+      metalness: 0.03,
+      color: new THREE.Color(0xf7eab6)
+    });
+    injectPOM(wallMaterial, wallRoughness, wallPomUniforms.uPomScale, wallPomUniforms.uTexRepeat, 12.0, 28.0);
+
+    // ==========================================
+    // 5. CARPET FLOOR PBR + POM (1000209020)
+    // ==========================================
+    const GRID_SIZE = 45;
+    const carpetRepeatVal = GRID_SIZE * 1.4;
+    const carpetRepeatUniform = { value: new THREE.Vector2(carpetRepeatVal, carpetRepeatVal) };
+
+    const carpetHeight = loadTex('1000209020_height.png', {
+      repeatX: carpetRepeatVal,
+      repeatY: carpetRepeatVal
+    });
+
+    const floorMaterial = new THREE.MeshStandardMaterial({
+      map: loadTex('1000209020_basecolor.png', {
+        isColor: true,
+        repeatX: carpetRepeatVal,
+        repeatY: carpetRepeatVal
+      }),
+      normalMap: loadTex('1000209020_normal.png', {
+        repeatX: carpetRepeatVal,
+        repeatY: carpetRepeatVal
+      }),
+      normalScale: new THREE.Vector2(1.15, 1.15),
+      roughnessMap: loadTex('1000209020_roughness.png', {
+        repeatX: carpetRepeatVal,
+        repeatY: carpetRepeatVal
+      }),
+      metalnessMap: loadTex('1000209020_metallic.png', {
+        repeatX: carpetRepeatVal,
+        repeatY: carpetRepeatVal
+      }),
+      metalness: 0.02,
+      aoMap: loadTex('1000209020_ao.png', {
+        repeatX: carpetRepeatVal,
+        repeatY: carpetRepeatVal
+      }),
+      aoMapIntensity: 1.1,
+      bumpMap: loadTex('1000209020_bump.png', {
+        repeatX: carpetRepeatVal,
+        repeatY: carpetRepeatVal
+      }),
+      bumpScale: 0.018,
+      roughness: 0.94,
+      color: new THREE.Color(0xf2e3a6)
+    });
+    injectPOM(floorMaterial, carpetHeight, { value: 0.010 }, carpetRepeatUniform, 6.0, 14.0);
+
+    // ==========================================
+    // 6. CEILING (WITH WARM BOUNCE FILL SO IT'S NOT BLACK) + FLUORESCENT PANELS
+    // ==========================================
+    const ceilBaseRepeat = GRID_SIZE * 2.0;
+    const ceilColorTex = loadTex('backroom/Ceilings/Backrooms_Ceiling_01_Color.jpg', {
+      isColor: true,
+      repeatX: ceilBaseRepeat,
+      repeatY: ceilBaseRepeat
+    });
+
+    const ceilingBaseMaterial = new THREE.MeshStandardMaterial({
+      map: ceilColorTex,
+      normalMap: loadTex('backroom/Ceilings/Backrooms_Ceiling_01_Normal.jpg', {
+        repeatX: ceilBaseRepeat,
+        repeatY: ceilBaseRepeat
+      }),
+      normalScale: new THREE.Vector2(1.0, 1.0),
+      roughnessMap: loadTex('backroom/Ceilings/Backrooms_Ceiling_01_Roughness.jpg', {
+        repeatX: ceilBaseRepeat,
+        repeatY: ceilBaseRepeat
+      }),
+      bumpMap: loadTex('backroom/Ceilings/Backrooms_Ceiling_01_Height.jpg', {
+        repeatX: ceilBaseRepeat,
+        repeatY: ceilBaseRepeat
+      }),
+      bumpScale: 0.016,
+      roughness: 0.96,
+      metalness: 0.0,
+      color: new THREE.Color(0xefe1a8),
+      emissive: new THREE.Color(0x52441b), // Warm floor bounce light on ceiling tiles
+      emissiveMap: ceilColorTex,
+      emissiveIntensity: 0.55
+    });
+
+    const whiteLightPanelMaterial = new THREE.MeshBasicMaterial({
+      color: 0xfff8dc,
+      polygonOffset: true,
+      polygonOffsetFactor: -2,
+      polygonOffsetUnits: -2
+    });
+
+    // ==========================================
+    // 7. UI SLIDERS & ACTIONS
+    // ==========================================
+    const tileSlider = document.getElementById('tile-slider');
+    const tileVal    = document.getElementById('tile-val');
+    const pomSlider  = document.getElementById('pom-slider');
+    const pomVal     = document.getElementById('pom-val');
+    const flashBtn   = document.getElementById('btn-flashlight');
+    const regenBtn   = document.getElementById('btn-regen');
+
+    tileSlider.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      tileRepeatX = val;
+      tileRepeatY = val * ASPECT_RATIO;
+      tileVal.textContent = `${val.toFixed(2)}x`;
+      wallPomUniforms.uTexRepeat.value.set(tileRepeatX, tileRepeatY);
+      for (const tex of wallTextures) {
+        tex.repeat.set(tileRepeatX, tileRepeatY);
+      }
+    });
+
+    pomSlider.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      wallPomUniforms.uPomScale.value = val;
+      pomVal.textContent = val.toFixed(3);
+    });
+
+    // ==========================================
+    // 8. NATURAL FLUORESCENT CEILING LIGHTING
+    // ==========================================
+    // Ground color (2nd arg) illuminates downward-facing ceiling normals!
+    const hemiLight = new THREE.HemisphereLight(0xfff4c8, 0xd4be72, 1.05);
+    scene.add(hemiLight);
+
+    const flashlight = new THREE.SpotLight(0xfffbe8, 5.2, 28, Math.PI / 4.4, 0.65, 1.35);
+    flashlight.visible = false;
+    scene.add(flashlight);
+    scene.add(flashlight.target);
+
+    const PANEL_SIZE = CELL_SIZE * 0.44;
+    const LIGHT_POOL_SIZE = 12;
+    const roomLights = [];
+    for (let i = 0; i < LIGHT_POOL_SIZE; i++) {
+      const rectLight = new THREE.RectAreaLight(0xfff5d4, 4.8, PANEL_SIZE, PANEL_SIZE);
+      rectLight.rotation.x = -Math.PI / 2;
+      scene.add(rectLight);
+      roomLights.push({
+        light: rectLight,
+        fixtureIndex: -1
+      });
+    }
+
+    let flashlightOn = false;
+    flashBtn.addEventListener('click', () => {
+      flashlightOn = !flashlightOn;
+      flashlight.visible = flashlightOn;
+      flashBtn.textContent = `Flashlight: ${flashlightOn ? 'ON' : 'OFF'}`;
+    });
+
+    // ==========================================
+    // 9. BACKROOMS LEVEL 0 MAP
+    // ==========================================
+    const mapGroup = new THREE.Group();
+    scene.add(mapGroup);
+
+    const dynamicWallsGroup = new THREE.Group();
+    mapGroup.add(dynamicWallsGroup);
+
+    let grid = [];
+    let wallBoxes = [];
+    let fixtureCoords = [];
+    let spawnX = 0;
+    let spawnZ = 0;
+
+    const fullWallGeo = new THREE.BoxGeometry(CELL_SIZE, WALL_HEIGHT, CELL_SIZE);
+    fullWallGeo.setAttribute('uv2', fullWallGeo.attributes.uv);
+
+    const pillarSize = CELL_SIZE * 0.56;
+    const pillarGeo = new THREE.BoxGeometry(pillarSize, WALL_HEIGHT, pillarSize);
+    pillarGeo.setAttribute('uv2', pillarGeo.attributes.uv);
+
+    const holeHeight = 1.18;
+    const headerHeight = WALL_HEIGHT - holeHeight;
+    const headerGeo = new THREE.BoxGeometry(CELL_SIZE, headerHeight, CELL_SIZE);
+    headerGeo.setAttribute('uv2', headerGeo.attributes.uv);
+
+    const lightPanelGeo = new THREE.PlaneGeometry(PANEL_SIZE, PANEL_SIZE);
+
+    function isWallAt(x, y) {
+      if (x < 0 || y < 0 || x >= GRID_SIZE || y >= GRID_SIZE) return true;
+      return grid[y][x] === 1 || grid[y][x] === 2;
+    }
+
+    function generateLayoutGrid() {
+      grid = Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(1));
+
+      const startX = 6;
+      const startY = 6;
+      const startW = 11;
+      const startH = 11;
+
+      for (let y = startY; y < startY + startH; y++) {
+        for (let x = startX; x < startX + startW; x++) {
+          const relX = x - startX;
+          const relY = y - startY;
+          const isPillar = (relX === 3 || relX === 7) && (relY === 3 || relY === 7);
+          grid[y][x] = isPillar ? 2 : 0;
+        }
+      }
+
+      function carveCorridors(cx, cy) {
+        grid[cy][cx] = 0;
+        const dirs = [[0, -2], [2, 0], [0, 2], [-2, 0]].sort(() => Math.random() - 0.5);
+        for (const [dx, dy] of dirs) {
+          const nx = cx + dx;
+          const ny = cy + dy;
+          if (nx > 1 && nx < GRID_SIZE - 2 && ny > 1 && ny < GRID_SIZE - 2 && grid[ny][nx] === 1) {
+            grid[cy + dy / 2][cx + dx / 2] = 0;
+            carveCorridors(nx, ny);
+          }
+        }
+      }
+      carveCorridors(3, 3);
+      carveCorridors(21, 5);
+      carveCorridors(5, 25);
+      carveCorridors(27, 27);
+
+      grid[startY + 5][startX - 1] = 0;
+      grid[startY + 5][startX + startW] = 0;
+      grid[startY - 1][startX + 5] = 0;
+      grid[startY + startH][startX + 5] = 0;
+
+      const bigRooms = [
+        { x: 20, y: 12, w: 9, h: 9 },
+        { x: 8,  y: 22, w: 11, h: 8 },
+        { x: 24, y: 24, w: 13, h: 11 },
+        { x: 34, y: 6,  w: 7,  h: 9 }
+      ];
+
+      for (const rm of bigRooms) {
+        for (let y = rm.y; y < Math.min(GRID_SIZE - 1, rm.y + rm.h); y++) {
+          for (let x = rm.x; x < Math.min(GRID_SIZE - 1, rm.x + rm.w); x++) {
+            const dx = x - rm.x;
+            const dy = y - rm.y;
+            const pillar = (dx > 1 && dx < rm.w - 2 && dy > 1 && dy < rm.h - 2 && dx % 3 === 1 && dy % 3 === 1 && Math.random() < 0.5);
+            grid[y][x] = pillar ? 2 : 0;
+          }
+        }
+      }
+
+      for (let y = 2; y < GRID_SIZE - 2; y++) {
+        for (let x = 2; x < GRID_SIZE - 2; x++) {
+          if (grid[y][x] === 1) {
+            const r = Math.random();
+            if (r < 0.045) {
+              grid[y][x] = 3;
+            } else if (r < 0.14) {
+              grid[y][x] = 0;
+            }
+          }
+        }
+      }
+
+      spawnX = (startX + 1) * CELL_SIZE;
+      spawnZ = (startY + 1) * CELL_SIZE;
+    }
+
+    function rebuildMapGeometry(resetPlayer = false) {
+      while (mapGroup.children.length > 0) {
+        const obj = mapGroup.children[0];
+        if (obj !== dynamicWallsGroup && obj.geometry) obj.geometry.dispose();
+        mapGroup.remove(obj);
+      }
+      while (dynamicWallsGroup.children.length > 0) {
+        dynamicWallsGroup.remove(dynamicWallsGroup.children[0]);
+      }
+      mapGroup.add(dynamicWallsGroup);
+
+      wallBoxes = [];
+      fixtureCoords = [];
+      roomLights.forEach(slot => { slot.fixtureIndex = -1; });
+
+      const span = GRID_SIZE * CELL_SIZE;
+      const centerOffset = (GRID_SIZE - 1) * CELL_SIZE * 0.5;
+
+      const floorGeo = new THREE.PlaneGeometry(span, span);
+      floorGeo.setAttribute('uv2', floorGeo.attributes.uv);
+      const floorMesh = new THREE.Mesh(floorGeo, floorMaterial);
+      floorMesh.rotation.x = -Math.PI / 2;
+      floorMesh.position.set(centerOffset, 0, centerOffset);
+      mapGroup.add(floorMesh);
+
+      const ceilMesh = new THREE.Mesh(new THREE.PlaneGeometry(span, span), ceilingBaseMaterial);
+      ceilMesh.rotation.x = Math.PI / 2;
+      ceilMesh.position.set(centerOffset, WALL_HEIGHT, centerOffset);
+      mapGroup.add(ceilMesh);
+
+      const lightPositions = [];
+
+      for (let y = 0; y < GRID_SIZE; y++) {
+        for (let x = 0; x < GRID_SIZE; x++) {
+          const wx = x * CELL_SIZE;
+          const wz = y * CELL_SIZE;
+          const cell = grid[y][x];
+
+          if (cell === 1) {
+            const wallMesh = new THREE.Mesh(fullWallGeo, wallMaterial);
+            wallMesh.position.set(wx, WALL_HEIGHT * 0.5, wz);
+            dynamicWallsGroup.add(wallMesh);
+
+            wallBoxes.push({
+              minX: wx - CELL_SIZE * 0.5,
+              maxX: wx + CELL_SIZE * 0.5,
+              minZ: wz - CELL_SIZE * 0.5,
+              maxZ: wz + CELL_SIZE * 0.5
+            });
+          } else if (cell === 2) {
+            const pillarMesh = new THREE.Mesh(pillarGeo, wallMaterial);
+            pillarMesh.position.set(wx, WALL_HEIGHT * 0.5, wz);
+            dynamicWallsGroup.add(pillarMesh);
+
+            wallBoxes.push({
+              minX: wx - pillarSize * 0.5,
+              maxX: wx + pillarSize * 0.5,
+              minZ: wz - pillarSize * 0.5,
+              maxZ: wz + pillarSize * 0.5
+            });
+          } else if (cell === 3) {
+            const headerMesh = new THREE.Mesh(headerGeo, wallMaterial);
+            headerMesh.position.set(wx, holeHeight + headerHeight * 0.5, wz);
+            dynamicWallsGroup.add(headerMesh);
+          } else {
+            const openSurround =
+              !isWallAt(x + 1, y) &&
+              !isWallAt(x - 1, y) &&
+              !isWallAt(x, y + 1) &&
+              !isWallAt(x, y - 1);
+
+            if (openSurround && x % 2 === 1 && y % 2 === 1) {
+              lightPositions.push({ x: wx, z: wz });
+              fixtureCoords.push({ x: wx, z: wz });
+            }
+          }
+        }
+      }
+
+      if (lightPositions.length > 0) {
+        const instLights = new THREE.InstancedMesh(
+          lightPanelGeo,
+          whiteLightPanelMaterial,
+          lightPositions.length
+        );
+        const dummy = new THREE.Object3D();
+        lightPositions.forEach((pos, idx) => {
+          dummy.position.set(pos.x, WALL_HEIGHT - 0.025, pos.z);
+          dummy.rotation.set(Math.PI / 2, 0, 0);
+          dummy.updateMatrix();
+          instLights.setMatrixAt(idx, dummy.matrix);
+        });
+        instLights.instanceMatrix.needsUpdate = true;
+        mapGroup.add(instLights);
+      }
+
+      if (resetPlayer) {
+        camera.position.set(spawnX, 1.65, spawnZ);
+        yaw = 0;
+        pitch = 0;
+        targetYaw = 0;
+        targetPitch = 0;
+      }
+    }
+
+    function shiftUnseenMapArea() {
+      const px = camera.position.x;
+      const pz = camera.position.z;
+      const forwardX = -Math.sin(yaw);
+      const forwardZ = -Math.cos(yaw);
+
+      const safeRadiusSq = 24.0 * 24.0;
+      let changed = false;
+
+      for (let y = 2; y < GRID_SIZE - 2; y++) {
+        for (let x = 2; x < GRID_SIZE - 2; x++) {
+          const wx = x * CELL_SIZE;
+          const wz = y * CELL_SIZE;
+          const dx = wx - px;
+          const dz = wz - pz;
+          const distSq = dx * dx + dz * dz;
+
+          if (distSq < safeRadiusSq) continue;
+
+          const dist = Math.sqrt(distSq);
+          const dot = (dx / dist) * forwardX + (dz / dist) * forwardZ;
+          if (dot > -0.25) continue;
+
+          if (Math.random() < 0.08) {
+            const current = grid[y][x];
+            if (current === 1) {
+              grid[y][x] = Math.random() < 0.55 ? 0 : 3;
+              changed = true;
+            } else if (current === 0) {
+              grid[y][x] = Math.random() < 0.35 ? 1 : (Math.random() < 0.25 ? 2 : 0);
+              changed = true;
+            }
+          }
+        }
+      }
+
+      if (changed) {
+        rebuildMapGeometry(false);
+      }
+    }
+
+    generateLayoutGrid();
+    rebuildMapGeometry(true);
+
+    regenBtn.addEventListener('click', () => {
+      generateLayoutGrid();
+      rebuildMapGeometry(true);
+    });
+
+    // ==========================================
+    // 10. SMOOTH ALL-DEVICE CONTROLS (NO CLICK REQUIRED ON PC)
+    // ==========================================
+    const joystickZone = document.getElementById('joystick-zone');
+    const joystickKnob = document.getElementById('joystick-knob');
+    const lookZone     = document.getElementById('look-zone');
+
+    const moveInput = { x: 0, y: 0 };
+    let joyTouchId = null;
+    const maxRadius = 44;
+
+    function safePreventDefault(e) {
+      if (e.cancelable) e.preventDefault();
+    }
+
+    function updateJoystick(clientX, clientY) {
+      const rect = joystickZone.getBoundingClientRect();
+      const cx = rect.left + rect.width * 0.5;
+      const cy = rect.top + rect.height * 0.5;
+
+      let dx = clientX - cx;
+      let dy = clientY - cy;
+      const dist = Math.hypot(dx, dy);
+
+      if (dist > maxRadius) {
+        dx = (dx / dist) * maxRadius;
+        dy = (dy / dist) * maxRadius;
+      }
+
+      joystickKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+      moveInput.x = dx / maxRadius;
+      moveInput.y = -dy / maxRadius;
+    }
+
+    function resetJoystick() {
+      joyTouchId = null;
+      joystickKnob.style.transform = 'translate(0px, 0px)';
+      moveInput.x = 0;
+      moveInput.y = 0;
+    }
+
+    joystickZone.addEventListener('touchstart', (e) => {
+      safePreventDefault(e);
+      if (joyTouchId === null) {
+        const t = e.changedTouches[0];
+        joyTouchId = t.identifier;
+        updateJoystick(t.clientX, t.clientY);
+      }
+    }, { passive: false });
+
+    joystickZone.addEventListener('touchmove', (e) => {
+      safePreventDefault(e);
+      for (const t of e.changedTouches) {
+        if (t.identifier === joyTouchId) updateJoystick(t.clientX, t.clientY);
+      }
+    }, { passive: false });
+
+    joystickZone.addEventListener('touchend', (e) => {
+      for (const t of e.changedTouches) {
+        if (t.identifier === joyTouchId) resetJoystick();
+      }
+    });
+    joystickZone.addEventListener('touchcancel', resetJoystick);
+
+    let lookTouchId = null;
+    let lastTouchLookX = 0;
+    let lastTouchLookY = 0;
+    const touchSensitivity = 0.0048;
+
+    lookZone.addEventListener('touchstart', (e) => {
+      safePreventDefault(e);
+      if (lookTouchId === null) {
+        const t = e.changedTouches[0];
+        lookTouchId = t.identifier;
+        lastTouchLookX = t.clientX;
+        lastTouchLookY = t.clientY;
+      }
+    }, { passive: false });
+
+    lookZone.addEventListener('touchmove', (e) => {
+      safePreventDefault(e);
+      for (const t of e.changedTouches) {
+        if (t.identifier === lookTouchId) {
+          const dx = t.clientX - lastTouchLookX;
+          const dy = t.clientY - lastTouchLookY;
+          lastTouchLookX = t.clientX;
+          lastTouchLookY = t.clientY;
+
+          targetYaw -= dx * touchSensitivity;
+          targetPitch -= dy * touchSensitivity;
+          targetPitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, targetPitch));
+        }
+      }
+    }, { passive: false });
+
+    lookZone.addEventListener('touchend', (e) => {
+      for (const t of e.changedTouches) {
+        if (t.identifier === lookTouchId) lookTouchId = null;
+      }
+    });
+
+    const mouseSensitivity = 0.0024;
+    let lastMouseX = null;
+    let lastMouseY = null;
+
+    lookZone.addEventListener('click', () => {
+      if (renderer.domElement.requestPointerLock) {
+        renderer.domElement.requestPointerLock();
+      }
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (e.target.closest('#hud') || e.target.closest('#joystick-zone')) {
+        lastMouseX = e.clientX;
+        lastMouseY = e.clientY;
+        return;
+      }
+
+      if (document.pointerLockElement === renderer.domElement) {
+        targetYaw -= e.movementX * mouseSensitivity;
+        targetPitch -= e.movementY * mouseSensitivity;
+      } else {
+        if (lastMouseX !== null && lastMouseY !== null) {
+          const dx = e.clientX - lastMouseX;
+          const dy = e.clientY - lastMouseY;
+          targetYaw -= dx * mouseSensitivity * 1.35;
+          targetPitch -= dy * mouseSensitivity * 1.35;
+        }
+        lastMouseX = e.clientX;
+        lastMouseY = e.clientY;
+      }
+      targetPitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, targetPitch));
+    });
+
+    window.addEventListener('mouseleave', () => {
+      lastMouseX = null;
+      lastMouseY = null;
+    });
+
+    const keys = {};
+    window.addEventListener('keydown', (e) => { keys[e.code] = true; });
+    window.addEventListener('keyup', (e) => { keys[e.code] = false; });
+
+    // ==========================================
+    // 11. COLLISION & MAIN LOOP
+    // ==========================================
+    const PLAYER_RADIUS = 0.72;
+    const posReadout = document.getElementById('pos-readout');
+
+    function checkCollision(nx, nz) {
+      for (let i = 0; i < wallBoxes.length; i++) {
+        const b = wallBoxes[i];
+        if (
+          nx + PLAYER_RADIUS > b.minX &&
+          nx - PLAYER_RADIUS < b.maxX &&
+          nz + PLAYER_RADIUS > b.minZ &&
+          nz - PLAYER_RADIUS < b.maxZ
+        ) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    const clock = new THREE.Clock();
+    let headBobTimer = 0;
+    let stepDistanceAccum = 0;
+    let mapShiftTimer = 0;
+
+    function updatePanelAreaLights() {
+      if (fixtureCoords.length === 0) return;
+
+      const px = camera.position.x;
+      const pz = camera.position.z;
+      const maxRangeSq = 45.0 * 45.0;
+      const usedFixtures = new Set();
+
+      for (const slot of roomLights) {
+        if (slot.fixtureIndex !== -1 && slot.fixtureIndex < fixtureCoords.length) {
+          const f = fixtureCoords[slot.fixtureIndex];
+          const dSq = (f.x - px) ** 2 + (f.z - pz) ** 2;
+          if (dSq > maxRangeSq) {
+            slot.fixtureIndex = -1;
+          } else {
+            usedFixtures.add(slot.fixtureIndex);
+          }
+        } else {
+          slot.fixtureIndex = -1;
+        }
+      }
+
+      for (const slot of roomLights) {
+        if (slot.fixtureIndex !== -1) continue;
+        let bestIdx = -1;
+        let bestDistSq = maxRangeSq;
+
+        for (let i = 0; i < fixtureCoords.length; i++) {
+          if (usedFixtures.has(i)) continue;
+          const f = fixtureCoords[i];
+          const dSq = (f.x - px) ** 2 + (f.z - pz) ** 2;
+          if (dSq < bestDistSq) {
+            bestDistSq = dSq;
+            bestIdx = i;
+          }
+        }
+
+        if (bestIdx !== -1) {
+          slot.fixtureIndex = bestIdx;
+          usedFixtures.add(bestIdx);
+        }
+      }
+
+      for (const slot of roomLights) {
+        if (slot.fixtureIndex === -1) {
+          slot.light.intensity = 0;
+          continue;
+        }
+
+        const f = fixtureCoords[slot.fixtureIndex];
+        slot.light.position.set(f.x, WALL_HEIGHT - 0.04, f.z);
+        slot.light.intensity = 4.8;
+      }
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const dt = Math.min(clock.getDelta(), 0.05);
+
+      mapShiftTimer += dt;
+      if (mapShiftTimer >= 16.0) {
+        mapShiftTimer = 0;
+        shiftUnseenMapArea();
+      }
+
+      const lookLerp = 1.0 - Math.exp(-26.0 * dt);
+      yaw += (targetYaw - yaw) * lookLerp;
+      pitch += (targetPitch - pitch) * lookLerp;
+
+      camera.rotation.y = yaw;
+      camera.rotation.x = pitch;
+
+      let forward = moveInput.y;
+      let strafe  = moveInput.x;
+      if (keys['KeyW'] || keys['ArrowUp'])    forward += 1;
+      if (keys['KeyS'] || keys['ArrowDown'])  forward -= 1;
+      if (keys['KeyD'] || keys['ArrowRight']) strafe  += 1;
+      if (keys['KeyA'] || keys['ArrowLeft'])  strafe  -= 1;
+
+      const mag = Math.hypot(forward, strafe);
+      if (mag > 1) {
+        forward /= mag;
+        strafe  /= mag;
+      }
+
+      const sprinting = keys['ShiftLeft'] || keys['ShiftRight'];
+      const speed = sprinting ? 5.6 : 3.7;
+      const sinY = Math.sin(yaw);
+      const cosY = Math.cos(yaw);
+
+      const vx = (-sinY * forward + cosY * strafe) * speed * dt;
+      const vz = (-cosY * forward - sinY * strafe) * speed * dt;
+
+      const oldX = camera.position.x;
+      const oldZ = camera.position.z;
+
+      if (!checkCollision(camera.position.x + vx, camera.position.z)) {
+        camera.position.x += vx;
+      }
+      if (!checkCollision(camera.position.x, camera.position.z + vz)) {
+        camera.position.z += vz;
+      }
+
+      const movedDist = Math.hypot(camera.position.x - oldX, camera.position.z - oldZ);
+
+      if (movedDist > 0.0005) {
+        headBobTimer += dt * (sprinting ? 14.0 : 10.5);
+        camera.position.y = 1.65 + Math.sin(headBobTimer) * 0.045;
+
+        const strideLength = sprinting ? 2.15 : 1.65;
+        stepDistanceAccum += movedDist;
+        if (stepDistanceAccum >= strideLength) {
+          stepDistanceAccum -= strideLength;
+          playOneStep(sprinting);
+        }
+      } else {
+        camera.position.y += (1.65 - camera.position.y) * 0.15;
+        stepDistanceAccum = Math.min(stepDistanceAccum, 0.35);
+      }
+
+      flashlight.position.copy(camera.position);
+      const forwardDir = new THREE.Vector3(0, 0, -1).applyEuler(camera.rotation);
+      flashlight.target.position.copy(camera.position).add(forwardDir);
+      flashlight.target.updateMatrixWorld();
+
+      updatePanelAreaLights();
+
+      posReadout.textContent = `${camera.position.x.toFixed(1)}m, ${camera.position.z.toFixed(1)}m`;
+      renderer.render(scene, camera);
+    }
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    animate();
+  </script>
+</body>
+</html>
