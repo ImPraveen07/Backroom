@@ -228,7 +228,7 @@
 
     async function loadWalkBuffer() {
       try {
-        const res = await fetch('walk.mp3');
+        const res = await fetch('Assets/walk.mp3');
         const arrBuf = await res.arrayBuffer();
         const tempCtx = new AudioCtx();
         walkBuffer = await tempCtx.decodeAudioData(arrBuf);
@@ -239,7 +239,7 @@
     }
     loadWalkBuffer();
 
-    const fallbackWalkAudio = new Audio('assets/walk.mp3');
+    const fallbackWalkAudio = new Audio('Assets/walk.mp3');
     fallbackWalkAudio.preload = 'auto';
 
     function unlockAudioContext() {
@@ -422,23 +422,23 @@
     // ==========================================
     // 4. WALL PBR + POM (backroom/Walls/Backrooms_Wallpaper_01_*)
     // ==========================================
-    const wallColor = loadTex('assets/Backrooms_Wallpaper_01_Color.jpg', {
+    const wallColor = loadTex('Assets/Backrooms_Wallpaper_01_Color.jpg', {
       isColor: true,
       repeatX: tileRepeatX,
       repeatY: tileRepeatY,
       trackWall: true
     });
-    const wallNormal = loadTex('assets/Backrooms_Wallpaper_01_Normal.jpg', {
+    const wallNormal = loadTex('Assets/Backrooms_Wallpaper_01_Normal.jpg', {
       repeatX: tileRepeatX,
       repeatY: tileRepeatY,
       trackWall: true
     });
-    const wallRoughness = loadTex('assets/Backrooms_Wallpaper_01_Roughness.jpg', {
+    const wallRoughness = loadTex('Assets/Backrooms_Wallpaper_01_Roughness.jpg', {
       repeatX: tileRepeatX,
       repeatY: tileRepeatY,
       trackWall: true
     });
-    const wallTintable = loadTex('assets/Backrooms_Wallpaper_01_Tintable.jpg', {
+    const wallTintable = loadTex('Assets/Backrooms_Wallpaper_01_Tintable.jpg', {
       isColor: true,
       repeatX: tileRepeatX,
       repeatY: tileRepeatY,
@@ -471,37 +471,37 @@
     const carpetRepeatVal = GRID_SIZE * 1.4;
     const carpetRepeatUniform = { value: new THREE.Vector2(carpetRepeatVal, carpetRepeatVal) };
 
-    const carpetHeight = loadTex('assets/1000209020_height.png', {
+    const carpetHeight = loadTex('Assets/1000209020_height.png', {
       repeatX: carpetRepeatVal,
       repeatY: carpetRepeatVal
     });
 
     const floorMaterial = new THREE.MeshStandardMaterial({
-      map: loadTex('assets/1000209020_basecolor.png', {
+      map: loadTex('Assets/1000209020_basecolor.png', {
         isColor: true,
         repeatX: carpetRepeatVal,
         repeatY: carpetRepeatVal
       }),
-      normalMap: loadTex('assets/1000209020_normal.png', {
+      normalMap: loadTex('Assets/1000209020_normal.png', {
         repeatX: carpetRepeatVal,
         repeatY: carpetRepeatVal
       }),
       normalScale: new THREE.Vector2(1.15, 1.15),
-      roughnessMap: loadTex('assets/1000209020_roughness.png', {
+      roughnessMap: loadTex('Assets/1000209020_roughness.png', {
         repeatX: carpetRepeatVal,
         repeatY: carpetRepeatVal
       }),
-      metalnessMap: loadTex('assets/1000209020_metallic.png', {
+      metalnessMap: loadTex('Assets/1000209020_metallic.png', {
         repeatX: carpetRepeatVal,
         repeatY: carpetRepeatVal
       }),
       metalness: 0.02,
-      aoMap: loadTex('assets/1000209020_ao.png', {
+      aoMap: loadTex('Assets/1000209020_ao.png', {
         repeatX: carpetRepeatVal,
         repeatY: carpetRepeatVal
       }),
       aoMapIntensity: 1.1,
-      bumpMap: loadTex('assets/1000209020_bump.png', {
+      bumpMap: loadTex('Assets/1000209020_bump.png', {
         repeatX: carpetRepeatVal,
         repeatY: carpetRepeatVal
       }),
@@ -523,16 +523,16 @@
 
     const ceilingBaseMaterial = new THREE.MeshStandardMaterial({
       map: ceilColorTex,
-      normalMap: loadTex('assets/Backrooms_Ceiling_01_Normal.jpg', {
+      normalMap: loadTex('Assets/Backrooms_Ceiling_01_Normal.jpg', {
         repeatX: ceilBaseRepeat,
         repeatY: ceilBaseRepeat
       }),
       normalScale: new THREE.Vector2(1.0, 1.0),
-      roughnessMap: loadTex('assets/Backrooms_Ceiling_01_Roughness.jpg', {
+      roughnessMap: loadTex('Assets/Backrooms_Ceiling_01_Roughness.jpg', {
         repeatX: ceilBaseRepeat,
         repeatY: ceilBaseRepeat
       }),
-      bumpMap: loadTex('assets/Backrooms_Ceiling_01_Height.jpg', {
+      bumpMap: loadTex('Assets/Backrooms_Ceiling_01_Height.jpg', {
         repeatX: ceilBaseRepeat,
         repeatY: ceilBaseRepeat
       }),
